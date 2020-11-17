@@ -1,0 +1,129 @@
+#!/usr/bin/python
+
+################################################################################
+# Description
+################################################################################
+# Control script for unit-trace
+
+################################################################################
+# Setup
+################################################################################
+
+# Get trace files from command line arguments
+from optparse import OptionParser
+usage = "usage: %prog [options] <one or more trace files>"
+parser = OptionParser(usage=usage)
+parser.add_option("-s", "--skip", dest="skipnum", default=0, type=int,
+    help="Skip over a fixed number of records")
+parser.add_option("-m", "--max", dest="maxnum", default=0, type=int,
+    help="Maximum number of records to parse")
+parser.add_option("-p", "--progress", action="store_true", dest="progress",
+    default=False, help="Show parsing progress")
+parser.add_option("-g", "--gedf", action="store_true", dest="gedf",
+    default=False, help="Run G-EDF test")
+parser.add_option("-i", "--info", dest="num_inversions", default=-1, type=int,
+    help="Print the n longest inversions, plus statistical info")
+parser.add_option("-o", "--stdout", action="store_true", dest="stdout",
+    default=False, help="Use stdout_printer")
+parser.add_option("-v", "--visual", action="store_true", dest="visualize",
+    default=False, help="Use visualizer")
+parser.add_option("-u", "--time-per-maj", default=5000000.0, type=float,
+    dest="time_per_maj", help="Time interval between major ticks, in the visualizer")
+parser.add_option("-c", "--clean", action="store_true", dest="clean",
+    default=False, help="Use sanitizer to clean garbage records")
+parser.add_option("-e", "--earliest", default=0, type=int, dest="earliest",
+    help="Earliest timestamp of interest")
+parser.add_option("-l", "--latest", default=0, type=int, dest="latest",
+    help="Latest timestamp of interest")
+parser.add_option("-b", "--bufsize", dest="buffsize", default=200, type=int,
+    help="Per-CPU buffer size for sorting records")
+(options, traces) = parser.parse_args()
+traces = list(traces)
+if len(traces) < 1:
+    parser.print_help()
+    exit()
+
+################################################################################
+# Pipeline
+################################################################################
+
+# Import the unit_trace module
+import unit_trace
+
+# Read events from traces
+from unit_trace import trace_reader
+stream = trace_reader.trace_reader(traces, options.buffsize)
+
+# Skip over records
+if options.skipnum > 0:
+    from unit_trace import skipper
+    stream = skipper.skipper(stream, options.skipnum)
+
+# Enforce max number of records to parse
+if options.maxnum > 0:
+    from unit_trace import maxer
+    stream = maxer.maxer(stream, options.maxnum)
+
+# Enfore earliest timestamp
+if options.earliest > 0:
+    from unit_trace import earliest
+    stream = earliest.earliest(stream,options.earliest)
+
+# Enfore latest timestamp
+if options.latest > 0:
+    from unit_trace import latest
+    stream = latest.latest(stream,options.latest)
+
+# Filter out garbage events
+if options.clean is True:
+    from unit_trace import sanitizer
+    stream = sanitizer.sanitizer(stream)
+
+# Display progress information using stderr
+# e.g. # records completed so far, total time, etc.
+if options.progress is True:
+    from unit_trace import progress
+    stream = progress.progress(stream)
+
+# Produce G-EDF error records
+if options.gedf is True:
+    from unit_trace import gedf_test
+    stream = gedf_test.gedf_test(stream)
+
+# Filter some records out
+#def my_filter(record):
+#    if record.record_type == 'error' and record.type_name == 'inversion_end':
+#        if record.job.inversion_end - record.job.inversion_start < 4000000:
+#            return False
+#    return True
+#stream = filter(my_filter, stream)
+
+# Tee by the number of possible outputs
+# This might cause a performance bottleneck that could be eliminated by
+# checking how many we actually need :-)
+import itertools
+stream1, stream2, stream3, stream4 = itertools.tee(stream,4)
+
+# Call standard out printer
+if options.stdout is True:
+    from unit_trace import stdout_printer
+    stdout_printer.stdout_printer(stream1)
+
+# Print G_EDF inversion statistics
+if options.num_inversions > -1:
+    if options.gedf is not True:
+        import sys
+        sys.stderr.write("You must enable the G-EDF test module to print" +
+            " G-EDF inversion statistics\n")
+    else:
+        from unit_trace import gedf_inversion_stat_printer
+        gedf_inversion_stat_printer.gedf_inversion_stat_printer(stream2,options.num_inversions)
+
+# Print any warnings
+from unit_trace import warning_printer
+warning_printer.warning_printer(stream3)
+
+# Call visualizer
+if options.visualize is True:
+    from unit_trace import viz
+    viz.visualizer.visualizer(stream4, options.time_per_maj)

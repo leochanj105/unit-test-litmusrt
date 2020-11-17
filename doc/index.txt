@@ -1,0 +1,267 @@
+<center>
+#Unit-Trace#
+</center>
+
+<span style="font-weight: bold">
+Unit-Trace is a library of tools for parsing, testing, and visualizing real-time scheduler traces.
+Unit-Trace is inspired by the philosophy of "unit testing", in which software is tested iteratively to ensure it behaves according to specification.
+Unit-Trace aims to help scheduler developers not only determine whether or not bugs exist, but to actually aid in debugging by providing detailed
+information about scheduler behavior.
+</span>
+
+## About This Document ##
+This document is both the offical Unit-Trace website and the complete Unit-Trace documentation.
+
+## Obtaining Unit-Trace ##
+The latest public release of Unit-Trace (currently 2010.1) is available at:<br>
+[http://cs.unc.edu/~mollison/unit-trace/unit-trace.tar.gz][release]
+
+Members of UNC's Real-Time Group should obtain Unit-Trace using:<br>
+<codeblock>git clone ssh://cvs.cs.unc.edu/cvs/proj/litmus/repo/unit-trace.git</codeblock>
+
+## Installing Unit-Trace ##
+Dependencies: Python 2.6; for the visualizer, pygtk and pycairo.
+
+Unit-Trace consists of a Python module called `unit_trace` (encapsulated in the `unit_trace` directory) and a font-end script called `unit-trace`.
+
+You can use `install.py` to install Unit-Trace, or install manually by copying the `unit-trace` script and the `unit_trace` directory
+to `~/bin`.
+
+Make sure `~/bin` is on your `PATH`.
+
+## Using Unit-Trace ##
+Command line usage:<br>
+<codeblock>unit-trace &lt;one or more trace files&gt; [flags]</codeblock>.
+
+Each flag turns on or off a unit-trace submodule. The available submodules are
+given below.
+
+You can specify module flags in any order.
+
+For a quick usage reference (including a list of modules), type `unit-trace` on the command line, without any arguments.
+
+### Example Use Case ###
+Let's assume you're in a directory with a bunch of trace files with
+the extension `.bin`.
+Each trace file is assumed to be the trace of a single CPU, and all trace files in the directory are from the same experimental run.
+(The sample_traces directory, included with Unit Trace, will work for this example.)
+
+Suppose you want to get a list of the 10 longest priority inversions in a LITMUS<sup>RT</sup>trace.
+Use the following command:<br>
+<codeblock>unit-trace *.bin -c -g -i 10</codeblock>.
+
+Now, suppose you want to visualize one of those priority inversions.
+Given in the output for each one are the event IDs at the beginning and end of the priority inversion.
+Use the following command:<br>
+<codeblock>unit-trace *.bin -e &lt;the first event ID&gt; -l &lt;the second event ID&gt; -v</codeblock>.
+
+Note that if the visualizer stops at the second specified event (which it will), any tasks running at that point will appear to
+keep running forever. If you specify a slightly later second event ID (e.g. 100 greater than the actual one), this won't affect
+the jobs you're actually interested in.
+
+Now, suppose you want to see specific textual output for all events. (You could also specify a range if you wanted to.)<br>
+<codeblock>unit-trace *.bin -o > output</codeblock>
+
+This example provides a basic overview of what you can do with Unit-Trace. Detailed information about all available submodules is provided in
+the next section.
+
+## List of Submodules ##
+
+There are five basic kinds of submodules.
+
+- Input submodules, which read trace files
+- Filter submodules, which filter out event records
+- Test submodules, which perform some kind of test
+- Output modules, which display the results
+- Miscellaneous
+
+All submodules are listed and summarized in the tables below.
+Some submodules have further documentation, appearing later in this document.
+
+### Input Submodules ###
+<table border=1>
+<tr><th>Name</th><th>Flag</th><th>Parameters</th><th>Description</th></tr>
+<tr>
+<td>trace_parser</td>
+<td>always on, unless/until modules for other trace formats are contributed</td>
+<td>(None)</td><td>Parses LITMUS<sup>RT</sup> traces</td></tr>
+</table>
+### Filter Submodules ###
+<table border=1>
+<tr><th>Name</th><th>Flag</th><th>Parameters</th><th>Description</th></tr>
+<tr><td>earliest</td><td>-e</td><td>time</td><td>Filters out records before the given event ID. (Event IDs are assigned in order of event record timestamp, and are displayed by the `stdio_printer` submodule.)</td></tr>
+<tr><td>latest</td><td>-l</td><td>time</td><td>Filters out records after the given event ID.</td></tr>
+<tr><td>skipper</td><td>-s</td><td>number n</td><td>Skips the first n records</td></tr>
+<tr><td>maxer</td><td>-m</td><td>number n</td><td>Allows at most n records to be parsed</td></tr>
+<tr><td>sanitizer</td><td>-c</td><td>(None)</td><td>Modifies LITMUS<sup>RT</sup> traces. To be used in conjunction with the G-EDF tester. To summarize, LITMUS<sup>RT</sup> traces have some bogus records that need to be removed or altered in order for a (potentially) valid schedule to be represented.</td></tr>
+</table>
+### Test Submodules ###
+<table border=1>
+<tr><th>Name</th><th>Flag</th><th>Options</th><th>Description</th></tr>
+<tr><td>gedf_test</td><td>-g</td><td>(None)</td><td>Performs G-EDF testing.</td></tr>
+</table>
+### Output Submodules ###
+<table border=1>
+<tr><th>Name</th><th>Flag</th><th>Options</th><th>Description</th></tr>
+<tr><td>stdout_printer</td><td>-o</td><td>(None)</td><td>Prints records to standard out. You should probably redirect the output to a file when you use this.</td></tr>
+<tr><td>visualizer</td><td>-v</td><td>(None)</td><td>Visualizes records. You should probably use filters in conjunction with this submodule. Otherwise, it'll take forever to render, and do you <i>really</i> want to visualize the <i>entire</i> trace, anyway?</td></tr>
+<tr><td>gedf_inversion_stat_printer</td><td>-i</td><td>number n</td><td>Outputs statistics about G-EDF inversions, and the n longest inversions. (You can specify n as 0 if you want.)</td></tr>
+</table>
+### Miscellaneous Submodules ###
+<table border=1>
+<tr><th>Name</th><th>Flag</th><th>Options</th><th>Description</th></tr>
+<tr><td>progress</td><td>-p</td><td>(None)</td><td>Outputs progress info (e.g number of records parsed so far, total time to process trace) to std error.</td></tr>
+</table>
+
+## Specific Submodule Documentation ##
+
+If you want to learn more about specific submodules, you are looking in the right place.
+
+### The Visualizer Module ###
+
+The visualizer can give you an on-the-fly visual representation of the input
+stream, with the ability to scroll through a graph of the schedule and inspect
+various elements of it. To run the visualizer, add the `-v`
+option when invoking unit-trace. Note that you don't have to run the visualizer
+by itself -- for instance, you can both run the visualizer and get input to
+stdout by combining the `-v` and `-o`
+options. The information that goes into the visualizer is dependent on the
+input parameters you specify. For example, if you use `-e`
+and `-l` to specify a time range, the visualizer will
+generate a graph restricted to that time range.
+
+When the visualizer starts up, you'll see the beginning of the graph which the
+visualizer automatically generated. We'll first discuss the axes.
+The x-axis gives time (in whatever units
+the trace file was using). The meanings of the markings by y-axis depend on whether you
+are in Task Mode or CPU Mode. (You can change between Task Mode and
+CPU Mode by clicking the tabs at the top.) In Task Mode, the schedule is organized
+by task, so each item listed to the left of the y-axis gives
+the name of a task that was running (at present, the name of a task is its PID).
+Likewise, in CPU Mode the schedule is organized by CPU number, and each item
+gives the identifier of a CPU that at one point was used by at least one task.
+
+The horizontal cross-section demarcated by each task name or CPU
+identifier gives the chronological sequence of events in the input stream
+for the relevant task or CPU. The event symbols are as follows:
+
+<table border=1>
+<tr><th>Symbol Description</th><th>Event Type</th><th>Meaning</th></tr>
+<tr><td>Large colored bar</td><td>Scheduled</td><td>A job was scheduled during the period spanned by the bar.</td>
+<tr><td>Black triangle</td><td>Suspend (Block)</td><td>A task blocked at this time.</td></tr>
+<tr><td>White triangle</td><td>Resume (Unblock)</td><td>A task resumed execution at this time.</td></tr>
+<tr><td>"T" shape</td><td>Complete</td><td>A task signaled its completion of a job at this time.</td></tr>
+<tr><td>Large up arrow</td><td>Release</td><td>A job release occurred. (Appears only in Task Mode.)</td></tr>
+<tr><td>Small up arrow</td><td>Release</td><td>A job release occurred. (Appears only in CPU Mode. These appear
+attached to the x-axis, as is customary, rather than in a CPU's area.)</td></tr>
+<tr><td>Large down arrow</td><td>Deadline</td><td>A job's deadline occurs at this time. (Appears only in Task Mode.)</td></tr>
+<tr><td>Small down arrow</td><td>Deadline</td><td>A job's deadline occurs at this time. (Appears only in CPU Mode. These appear
+attached to the x-axis, as is customary, rather than in a CPU's area.)</td></tr>
+<tr><td>Small colored bar</td><td>Priority Inversion</td><td>(Appears only in conjuction with the gedf_test module.) A priority inversion occurred for some task: that is, the task in question <i>should</i> have been scheduled at the depicted time, but wasn't. In Task Mode these are organized by task (and appear gray since color would be redundant), and in CPU mode they appear at the bottom, colored by task.</td></tr>
+</table>
+
+If you're unsure as
+to what a certain symbol means, you can also mouse over it in the visualizer
+and read the description at the bottom of the screen.
+
+Also, a note about the `Scheduled` (and `Priority Inversion`) events: each of these events actually
+corresponds to two events in the input stream. Namely, a `Scheduled` event is really a `Switch To`
+event paired with a `Switch Away` event, and a `Priority Inversion` event is really an
+`Inversion Start` event paired with an `Inversion End` event. These events of course correspond to
+being scheduled and being descheduled, respectively. <i>However</i>, if the visualizer module
+finds a start event but not an end event (or vice-versa), it assumes that the corresponding
+event occurred, but at a time not in the input stream.
+In other words, it assumes that such events are genuine. To represent this phenomenon,
+the visualizer shows the bar going "off the graph".
+
+Interacting with the visualizer is easy. The scrollbars work in the obvious way. You can also
+use the arrow keys to move, or use Ctrl+arrow keys to move faster. Mousing over an event gives
+a description of the event at the bottom. You can also click an event to
+select it. Hold down Ctrl to select multiple events. You can also drag a box around multiple
+events to select them. You can even combine this with the Ctrl key to select multiple
+boxes of events in succession. Your selection is independent of the mode you are in --
+thus if you wanted to see e.g. what CPUs a task was running on from time A to time B,
+you could just select all the events under the task in question in Task Mode and then
+switch over to CPU mode. Right-click and you will get a context menu containing each event
+you selected. Selecting an item in the menu gives you detailed information about the event
+in its own window.
+
+If you want to see what's happening at a certain time, but don't want to bother scrolling there
+manually, you can select `View->Move to Time` and type in the time you want to move to.
+
+You can also zoom by either going to `View->Zoom In/Out`, or by holding down Ctrl and scrolling
+the mouse wheel.
+
+To exit the Unit-Trace visualizer, go to `File->Quit` or click the close button.
+
+## Gotchas ##
+
+Here, documentation is provided for potentially confusing topics that are not documented elsewhere.
+
+### A Note on Time ###
+
+In general, Unit-Trace is agnostic about the units of time used in the trace files.
+This is not expected to change in the future.
+The exception is output modules.
+Currently, some output modules assume time is in nanoseconds; they convert it into milliseconds and print the 'ms' unit indicator, where convenient.
+This behavior may have to be modified in the future if non-nanosecond trace files are used.
+
+## Known Bugs ##
+
+Here, documentation of known bugs is provided.
+
+(No known bugs right now --- but there may be some hiding...)
+
+
+## Development ##
+Please send patches to [Mac Mollison][mac] or, if you are in the `litmus` group at UNC, just work with the git repo directly.
+
+The following "rules" are currently in place:
+
+- Please follow PEP 8 style guidelines when possible.
+- Update the documentation when you do something that makes it obsolete or incomplete
+- Don't break the overall architecture (described below)
+
+### Architecture ###
+If you are interested in contributing to Unit-Trace, you probably ought to know a bit about its overall architecture.
+
+Generally speaking, each Unit-Trace submodule is a Python generator. It accepts a Python iterator object as input and returns a Python iterator
+object as output. (You may want to look up the relevant Python terminology.)
+
+The exceptions are input submodules, which do not take any input other than a list of trace files, and the output submodules, which do not return
+iterator objects.
+
+The `unit-trace` script connects together the desired modules (i.e. those specified on the command line) using Python iterators.
+
+This architecture provides two advantages.
+First, because Python iterators are evaluated lazily, it is not necessary to read an entire trace file into memory in order to run `unit-trace` on it.
+Second, it provides an easy-to-understand programming model.
+
+## Documentation ##
+The source code for this page is included in the `doc` folder that comes with Unit-Trace.
+Contributors are required to make appropriate amendments to this documentation.
+
+The source is stored in [Markdown format][markdown] in the file `index.txt` and can be built into HTML with `make`.
+
+## License ##
+Unit-Trace is released under the [Simplified BSD License][license].
+
+## Credits ##
+This project was created by and is maintained by the [Real-Time Systems Group][group] at the [University of North Carolina at Chapel Hill][uncch],
+[Department of Computer Science][csdept]. A detailed explanation of the tool is available in [this paper][ospert_paper], from
+[the 2009 OSPERT workshop][ospert].
+
+We would like to extend special thanks to Gary Bressler, who created and maintains the `visualizer` submodule as a volunteer with our group.
+
+We hope to have additional contributors in the future.
+
+
+[group]: http://cs.unc.edu/~anderson/real-time
+[uncch]: http://www.unc.edu
+[csdept]: http://cs.unc.edu
+[ospert_paper]: http://www.cs.unc.edu/%7Eanderson/papers/ospert09.pdf
+[ospert]: http://www.artist-embedded.org/artist/Overview,1750.html
+[markdown]: http://daringfireball.net/projects/markdown/
+[mac]: mailto:mollison@cs.unc.edu
+[license]: LICENSE
+[release]: http://cs.unc.edu/~mollison/unit-trace/unit-trace.tar.gz
