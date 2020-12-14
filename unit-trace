@@ -21,6 +21,8 @@ parser.add_option("-p", "--progress", action="store_true", dest="progress",
     default=False, help="Show parsing progress")
 parser.add_option("-g", "--gedf", action="store_true", dest="gedf",
     default=False, help="Run G-EDF test")
+parser.add_option("-P", "--pedf", action="store_true", dest="pedf",
+    default=False, help="Run P-EDF test")
 parser.add_option("-i", "--info", dest="num_inversions", default=-1, type=int,
     help="Print the n longest inversions, plus statistical info")
 parser.add_option("-o", "--stdout", action="store_true", dest="stdout",
@@ -90,6 +92,11 @@ if options.gedf is True:
     from unit_trace import gedf_test
     stream = gedf_test.gedf_test(stream)
 
+# Produce P-EDF error records
+if options.pedf is True:
+    from unit_trace import pedf_test
+    stream = pedf_test.pedf_test(stream)
+
 # Filter some records out
 #def my_filter(record):
 #    if record.record_type == 'error' and record.type_name == 'inversion_end':
@@ -111,10 +118,10 @@ if options.stdout is True:
 
 # Print G_EDF inversion statistics
 if options.num_inversions > -1:
-    if options.gedf is not True:
+    if (options.gedf is not True) and (options.pedf is not True):
         import sys
-        sys.stderr.write("You must enable the G-EDF test module to print" +
-            " G-EDF inversion statistics\n")
+        sys.stderr.write("You must enable the EDF test module to print" +
+            " EDF inversion statistics\n")
     else:
         from unit_trace import gedf_inversion_stat_printer
         gedf_inversion_stat_printer.gedf_inversion_stat_printer(stream2,options.num_inversions)

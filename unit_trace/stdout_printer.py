@@ -20,6 +20,8 @@ def stdout_printer(stream):
             _print_inversion_end(record)
 	elif record.record_type == "error" and record.type_name == 'miss_deadline':
 	    _print_miss_deadline(record)
+	elif record.record_type == "error" and record.type_name == 'wrong_partition':
+	    _print_wrong_partition(record)
         else:
             continue
         print ""
@@ -73,8 +75,14 @@ def _print_inversion_end(record):
     for job in record.on_cpu:
         print str(job) + " ",
     print #newline
+
 def _print_miss_deadline(record):
     print "Type: %s" % ("Miss deadline")
     print "Job: %d.%d" % (record.job.pid, record.job.job)
     print("Deadline: %d" % (record.job.deadline))
     print("Completion time: %d" % (record.late_completion))
+
+def _print_wrong_partition(record):
+    print "Type: %s" % ("Wrong partition")
+    print "Job: %d.%d" % (record.job.pid, record.job.job)
+    print "Description: Should be on %d, but is currently on %d" % (record.partition, record.job.partition)

@@ -156,6 +156,8 @@ def _get_file_iter(file):
             values = struct.unpack_from(StHeader.format +
                 type.format,data)
             record_dict = dict(zip(type.keys,values))
+	    if(type_num == 2):
+		record_dict["partition"] = ord(record_dict["partition"])
         except struct.error:
             f.close()
             sys.stderr.write("Skipping record that does not match proper" +
@@ -175,7 +177,10 @@ def _get_file_iter(file):
         # If there is no timestamp, set the time to 0
         if 'when' not in record.__dict__.keys():
             record.when = 0
-
+	#for k in record.__dict__.keys():
+	#    print(k)
+	#    print(record.__dict__[k])
+	#print("--------------------------")
         yield record
 
 # Convert a dict into an object
